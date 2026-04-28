@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EPIFINDER</title>
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+
+        :root {
+            --bg-color: #0b1120;
+            --panel-bg: rgba(30, 41, 59, 0.7);
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --secondary: #8b5cf6;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --error: #ef4444;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+            transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image:
+                radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.15) 0%, transparent 40%);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1350px;
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 2rem;
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .glass-panel::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            color: var(--text-main);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .section-title::before {
+            content: "";
+            width: 4px;
+            height: 1rem;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 0.3rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            padding: 0.75rem;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            outline: none;
+            resize: vertical;
+        }
+
+        input:focus,
+        textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+            background: rgba(15, 23, 42, 1);
+        }
+
+        .station-row {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 0.8rem;
+            border-radius: 12px;
+            margin-bottom: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .station-header {
+            font-size: 0.85rem;
+            color: var(--secondary);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        button.run-btn {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 1.2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 10px 15px -3px rgba(139, 92, 246, 0.3);
+            margin-top: 1rem;
+        }
+
+        button.run-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 20px -3px rgba(139, 92, 246, 0.4);
+        }
+
+        button.run-btn:active {
+            transform: translateY(0);
+        }
+
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .plot-container {
+            flex-grow: 1;
+            min-height: 550px;
+            position: relative;
+        }
+
+        .slider-container {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1.5rem;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            flex-direction: column;
+        }
+
+        .slider-row {
+            display: flex;
+            width: 100%;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .slider-container label {
+            margin: 0;
+            font-size: 1.1rem;
+            color: var(--primary);
+            white-space: nowrap;
+        }
+
+        input[type="range"] {
+            flex-grow: 1;
+            accent-color: var(--primary);
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            background: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.6);
+            border: 2px solid var(--primary);
+        }
+
+        #error-msg {
+            color: var(--error);
+            background: rgba(239, 68, 68, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            margin-top: 1rem;
+            display: none;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .table-container {
+            margin-top: 1rem;
+            max-height: 200px;
+            overflow-y: auto;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        th {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.5rem;
+            color: var(--secondary);
+            position: sticky;
+            top: 0;
+        }
+
+        td {
+            padding: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <!-- Input Panel -->
+        <div class="glass-panel" style="overflow-y: auto; max-height: 90vh;">
+            <h1>EPIFINDER</h1>
+            <p class="subtitle">Temukan Episenter</p>
+
+            <div class="section-title">Data Stasiun (X, Y, T_obs)</div>
+            <div id="stations-inputs">
+                <!-- Stasiun 1 -->
+                <div class="station-row">
+                    <div class="grid-3">
+                        <div><label>X1</label><input type="number" id="s1_x" value="20"></div>
+                        <div><label>Y1</label><input type="number" id="s1_y" value="10"></div>
+                        <div><label>T1</label><input type="number" id="s1_t" value="7.1" step="0.1"></div>
+                    </div>
+                </div>
+                <!-- Stasiun 2 -->
+                <div class="station-row">
+                    <div class="grid-3">
+                        <div><label>X2</label><input type="number" id="s2_x" value="50"></div>
+                        <div><label>Y2</label><input type="number" id="s2_y" value="25"></div>
+                        <div><label>T2</label><input type="number" id="s2_t" value="2.8" step="0.1"></div>
+                    </div>
+                </div>
+                <!-- Stasiun 3 -->
+                <div class="station-row">
+                    <div class="grid-3">
+                        <div><label>X3</label><input type="number" id="s3_x" value="40"></div>
+                        <div><label>Y3</label><input type="number" id="s3_y" value="50"></div>
+                        <div><label>T3</label><input type="number" id="s3_t" value="5.0" step="0.1"></div>
+                    </div>
+                </div>
+                <!-- Stasiun 4 -->
+                <div class="station-row">
+                    <div class="grid-3">
+                        <div><label>X4</label><input type="number" id="s4_x" value="10"></div>
+                        <div><label>Y4</label><input type="number" id="s4_y" value="40"></div>
+                        <div><label>T4</label><input type="number" id="s4_t" value="7.9" step="0.1"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-title">Tebakan Awal (Multiple)</div>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: -0.5rem; margin-bottom: 0.5rem;">
+                Masukkan format: X, Y (satu tebakan per baris)
+            </p>
+            <textarea id="initial_guesses" rows="5">30, 10
+10, 10
+5, 45
+35, 5
+6, 7</textarea>
+
+            <div class="section-title">Parameter</div>
+            <div class="grid-2">
+                <div>
+                    <label>Kecepatan Vp</label>
+                    <input type="number" id="vp" value="4.0" step="0.1">
+                </div>
+                <div>
+                    <label>Maks Iterasi</label>
+                    <input type="number" id="max_iter" value="4" min="1">
+                </div>
+            </div>
+
+            <button class="run-btn" onclick="jalankanInversi()">Hitung & Visualisasikan</button>
+
+            <div id="error-msg"></div>
+        </div>
+
+        <!-- Plot Panel -->
+        <div class="right-panel">
+
+            <!-- Interactive Slider -->
+            <div class="glass-panel" style="padding: 1.5rem;">
+                <div class="slider-row">
+                    <label id="lbl-iterasi" style="min-width: 120px;">Iterasi: 0</label>
+                    <input type="range" id="iter-slider" min="0" max="0" value="0" disabled
+                        oninput="updateVisualisasi()">
+                </div>
+
+                <div class="table-container">
+                    <table id="result-table">
+                        <thead>
+                            <tr>
+                                <th>Tebakan Ke-</th>
+                                <th>Posisi X</th>
+                                <th>Posisi Y</th>
+                                <th>RMS Error (s)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="4">Belum ada perhitungan</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Visualization Canvas -->
+            <div class="glass-panel plot-container">
+                <div id="plot-div"
+                    style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; padding: 1.5rem;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let stationsData = [];
+        let allResults = []; // Array of histories for each guess
+        let maxIterationsRun = 0;
+
+        // Colors palette for different guesses to ensure distinction
+        const colors = [
+            '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6',
+            '#ec4899', '#06b6d4', '#84cc16', '#6366f1', '#f43f5e'
+        ];
+
+        function initPlot() {
+            let layout = {
+                title: { text: 'Lintasan Iterasi & Gradien (Gauss-Newton)', font: { color: '#f8fafc', size: 18 } },
+                xaxis: { title: 'X (km)', gridcolor: 'rgba(255,255,255,0.1)', zerolinecolor: 'rgba(255,255,255,0.2)' },
+                yaxis: { title: 'Y (km)', gridcolor: 'rgba(255,255,255,0.1)', zerolinecolor: 'rgba(255,255,255,0.2)', scaleanchor: 'x', scaleratio: 1 },
+                bgcolor: 'rgba(0,0,0,0)',
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                margin: { l: 50, r: 50, b: 50, t: 50 },
+                font: { color: '#f8fafc' },
+                showlegend: true,
+                legend: { x: 1.02, y: 1, bgcolor: 'rgba(15, 23, 42, 0.8)', bordercolor: 'rgba(255,255,255,0.1)', borderwidth: 1 }
+            };
+            Plotly.newPlot('plot-div', [], layout, { responsive: true });
+        }
+        initPlot();
+
+        function parseGuesses() {
+            let text = document.getElementById('initial_guesses').value;
+            let lines = text.split('\n');
+            let guesses = [];
+            for (let line of lines) {
+                if (line.trim() === '') continue;
+                let parts = line.split(',');
+                if (parts.length === 2) {
+                    let x = parseFloat(parts[0].trim());
+                    let y = parseFloat(parts[1].trim());
+                    if (!isNaN(x) && !isNaN(y)) {
+                        guesses.push({ x: x, y: y });
+                    }
+                }
+            }
+            return guesses;
+        }
+
+        function jalankanInversi() {
+            document.getElementById('error-msg').style.display = 'none';
+            stationsData = [];
+
+            for (let i = 1; i <= 4; i++) {
+                stationsData.push({
+                    x: parseFloat(document.getElementById(`s${i}_x`).value),
+                    y: parseFloat(document.getElementById(`s${i}_y`).value),
+                    t: parseFloat(document.getElementById(`s${i}_t`).value)
+                });
+            }
+
+            let vp = parseFloat(document.getElementById('vp').value);
+            let n_iter = parseInt(document.getElementById('max_iter').value);
+
+            if (isNaN(vp) || vp <= 0) {
+                showError("Kecepatan (Vp) harus berupa angka positif.");
+                return;
+            }
+
+            let guesses = parseGuesses();
+            if (guesses.length === 0) {
+                showError("Masukkan setidaknya satu tebakan awal yang valid.");
+                return;
+            }
+
+            allResults = [];
+            maxIterationsRun = 0;
+
+            for (let g = 0; g < guesses.length; g++) {
+                let x0 = guesses[g].x;
+                let y0 = guesses[g].y;
+                let history = [];
+
+                for (let it = 0; it <= n_iter; it++) {
+                    let residual = [];
+                    let J = [];
+                    let sumSq = 0;
+
+                    // Hitung residual & Jacobian
+                    for (let i = 0; i < stationsData.length; i++) {
+                        let st = stationsData[i];
+                        let dx = st.x - x0;
+                        let dy = st.y - y0;
+                        let r = Math.sqrt(dx * dx + dy * dy);
+                        if (r === 0) r = 1e-6;
+
+                        let t_calc = r / vp;
+                        let res = st.t - t_calc;
+                        residual.push([res]);
+                        sumSq += res * res;
+
+                        // Partial derivatives (dtdx, dtdy) matching python code: -(xi - x0) / (Vp * r)
+                        let dtdx = - (st.x - x0) / (vp * r);
+                        let dtdy = - (st.y - y0) / (vp * r);
+                        J.push([dtdx, dtdy]);
+                    }
+
+                    let rms = Math.sqrt(sumSq / stationsData.length);
+                    history.push({ iter: it, x: x0, y: y0, rms: rms });
+
+                    if (it === n_iter) break;
+
+                    try {
+                        let J_mat = math.matrix(J);
+                        let r_mat = math.matrix(residual);
+                        let J_T = math.transpose(J_mat);
+
+                        let JTJ = math.multiply(J_T, J_mat);
+                        let JTJ_inv = math.inv(JTJ);
+                        let JTr = math.multiply(J_T, r_mat);
+
+                        let delta = math.multiply(JTJ_inv, JTr).toArray();
+
+                        x0 += delta[0][0];
+                        y0 += delta[1][0];
+                    } catch (err) {
+                        console.warn(`Matriks singular di tebakan ke-${g + 1}, iterasi ${it}`);
+                        break;
+                    }
+                }
+
+                allResults.push(history);
+                if (history.length - 1 > maxIterationsRun) {
+                    maxIterationsRun = history.length - 1;
+                }
+            }
+
+            if (allResults.length > 0) {
+                let slider = document.getElementById('iter-slider');
+                slider.max = maxIterationsRun;
+                slider.value = 0;
+                slider.disabled = false;
+
+                updateVisualisasi();
+            }
+        }
+
+        function updateVisualisasi() {
+            let slider = document.getElementById('iter-slider');
+            let currentIter = parseInt(slider.value);
+
+            document.getElementById('lbl-iterasi').innerText = `Iterasi: ${currentIter} / ${maxIterationsRun}`;
+
+            let traces = [];
+
+            // 1. Plot Stasiun
+            traces.push({
+                x: stationsData.map(s => s.x),
+                y: stationsData.map(s => s.y),
+                mode: 'markers+text',
+                type: 'scatter',
+                marker: { size: 14, color: '#3b82f6', symbol: 'triangle-up' },
+                name: 'Stasiun',
+                text: ['St 1', 'St 2', 'St 3', 'St 4'],
+                textposition: 'top center',
+                textfont: { color: '#f8fafc' },
+                hoverinfo: 'text+x+y'
+            });
+
+            let tbody = document.querySelector('#result-table tbody');
+            tbody.innerHTML = '';
+
+            // 2. Plot setiap tebakan (path & current point)
+            for (let g = 0; g < allResults.length; g++) {
+                let history = allResults[g];
+                let color = colors[g % colors.length];
+
+                // Determine how many steps to show for this guess
+                let stepLimit = Math.min(currentIter, history.length - 1);
+                let pathData = history.slice(0, stepLimit + 1);
+
+                let px = pathData.map(d => d.x);
+                let py = pathData.map(d => d.y);
+
+                // Garis Lintasan
+                if (px.length > 1) {
+                    traces.push({
+                        x: px,
+                        y: py,
+                        mode: 'lines+markers',
+                        type: 'scatter',
+                        line: { color: color, width: 2, dash: 'dot' },
+                        marker: { size: 6, color: color },
+                        name: `Awal ${g + 1} (Path)`,
+                        showlegend: false,
+                        hoverinfo: 'none'
+                    });
+                }
+
+                // Titik Saat Ini
+                let currentPoint = pathData[pathData.length - 1];
+                traces.push({
+                    x: [currentPoint.x],
+                    y: [currentPoint.y],
+                    mode: 'markers',
+                    type: 'scatter',
+                    marker: { size: 12, color: color, line: { color: '#fff', width: 2 } },
+                    name: `Iterasi Awal ${g + 1}`,
+                    text: [`Pos: (${currentPoint.x.toFixed(2)}, ${currentPoint.y.toFixed(2)})<br>RMS: ${currentPoint.rms.toFixed(4)}`],
+                    hoverinfo: 'text'
+                });
+
+                // Update Table
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="color: ${color}; font-weight: bold;">Tebakan ${g + 1}</td>
+                    <td>${currentPoint.x.toFixed(4)}</td>
+                    <td>${currentPoint.y.toFixed(4)}</td>
+                    <td style="${currentPoint.rms < 0.1 ? 'color: var(--success); font-weight: bold;' : ''}">${currentPoint.rms.toFixed(5)}</td>
+                `;
+                tbody.appendChild(tr);
+            }
+
+            let layout = {
+                title: { text: `Lintasan Iterasi & Posisi (Iterasi: ${currentIter})`, font: { color: '#f8fafc', size: 18 } },
+                xaxis: { title: 'X (km)', gridcolor: 'rgba(255,255,255,0.1)', zerolinecolor: 'rgba(255,255,255,0.2)' },
+                yaxis: { title: 'Y (km)', gridcolor: 'rgba(255,255,255,0.1)', zerolinecolor: 'rgba(255,255,255,0.2)', scaleanchor: 'x', scaleratio: 1 },
+                bgcolor: 'rgba(0,0,0,0)',
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                margin: { l: 50, r: 10, b: 50, t: 50 },
+                font: { color: '#f8fafc' },
+                showlegend: true,
+                legend: { x: 1.02, y: 1, bgcolor: 'rgba(15, 23, 42, 0.8)', bordercolor: 'rgba(255,255,255,0.1)', borderwidth: 1 }
+            };
+
+            Plotly.react('plot-div', traces, layout);
+        }
+
+        function showError(msg) {
+            let errDiv = document.getElementById('error-msg');
+            errDiv.innerText = msg;
+            errDiv.style.display = 'block';
+        }
+    </script>
+</body>
+
+</html>
